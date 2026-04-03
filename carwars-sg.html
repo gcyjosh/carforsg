@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Car Wars SG — Which Brand Rules the Roads?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #09090d;
+      --surface: #121218;
+      --surface2: #1a1a22;
+      --border: #252530;
+      --accent: #e63946;
+      --gold: #f5c518;
+      --green: #22c55e;
+      --red: #ef4444;
+      --text: #f0f0f2;
+      --muted: #5a5a6a;
+      --dim: #2a2a34;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      overflow: hidden;
+    }
+
+    /* Grain overlay */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* Grid lines background */
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+    }
+
+    /* ─────── SCREENS ─────── */
+    .screen { display: none; width: 100%; height: 100vh; }
+    .screen.active { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+
+    /* ─────── TITLE SCREEN ─────── */
+    #titleScreen {
+      gap: 28px;
+      padding: 32px 24px;
+      text-align: center;
+      position: relative;
+    }
+
+    .title-flag {
+      font-size: 11px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .title-hero {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(72px, 16vw, 140px);
+      line-height: 0.85;
+      color: #fff;
+      letter-spacing: 4px;
+    }
+
+    .title-hero span { color: var(--accent); }
+
+    .title-desc {
+      font-size: 15px;
+      color: #666;
+      line-height: 1.7;
+      max-width: 380px;
+    }
+
+    .title-stats {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+    }
+
+    .t-stat {
+      padding: 16px 28px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+    .t-stat:last-child { border-right: none; }
+
+    .t-stat-n {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 30px;
+      color: var(--gold);
+      line-height: 1;
+    }
+
+    .t-stat-l {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 15px 52px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      letter-spacing: 3px;
+      cursor: pointer;
+      transition: all 0.2s;
+      clip-path: polygon(10px 0%, 100% 0%, calc(100% - 10px) 100%, 0% 100%);
+    }
+
+    .btn-primary:hover {
+      background: #ff4d5a;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(230, 57, 70, 0.35);
+    }
+
+    .source-note {
+      font-size: 11px;
+      color: #2a2a34;
+    }
+
+    /* ─────── GAME SCREEN ─────── */
+    #gameScreen {
+      padding: 20px 24px 24px;
+      gap: 16px;
+      max-width: 960px;
+      margin: 0 auto;
+      width: 100%;
+      justify-content: flex-start;
+      padding-top: 28px;
+    }
+
+    .game-topbar {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .score-group { display: flex; gap: 20px; }
+
+    .score-chip {
+      text-align: left;
+    }
+
+    .score-chip .val {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 36px;
+      line-height: 1;
+      color: var(--text);
+    }
+
+    .score-chip .lbl {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .streak-pill {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 16px;
+      letter-spacing: 1px;
+      color: var(--gold);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      min-height: 36px;
+    }
+
+    .game-prompt {
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: var(--muted);
+      text-align: center;
+      width: 100%;
+    }
+
+    .cards-wrapper {
+      display: flex;
+      gap: 14px;
+      width: 100%;
+      align-items: stretch;
+    }
+
+    .vs-pill {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: var(--dim);
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      padding-bottom: 8px;
+    }
+
+    /* ─────── CARDS ─────── */
+    .car-card {
+      flex: 1;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.2s, background 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding: 28px 20px 20px;
+      position: relative;
+      overflow: hidden;
+      min-height: 210px;
+      user-select: none;
+    }
+
+    /* Accent stripe top */
+    .car-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 3px;
+      background: var(--c, #333);
+      transition: height 0.25s;
+    }
+
+    /* Large letter watermark */
+    .card-wm {
+      position: absolute;
+      bottom: -14px;
+      right: 10px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 90px;
+      color: var(--c, #222);
+      opacity: 0.08;
+      line-height: 1;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .car-card:hover:not(.no-hover) {
+      border-color: rgba(255,255,255,0.12);
+      transform: translateY(-3px);
+      background: var(--surface2);
+    }
+
+    .car-card:hover:not(.no-hover)::before { height: 5px; }
+
+    .card-brand {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(26px, 3.5vw, 38px);
+      letter-spacing: 2px;
+      text-align: center;
+      line-height: 1.1;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card-number {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(44px, 6vw, 66px);
+      line-height: 1;
+      color: var(--gold);
+      position: relative;
+      z-index: 1;
+      transition: opacity 0.35s, transform 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .card-number.hidden {
+      color: var(--dim);
+    }
+
+    .card-number.pop {
+      animation: pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes pop {
+      from { transform: scale(0.7); opacity: 0; }
+      to   { transform: scale(1);   opacity: 1; }
+    }
+
+    .card-sublabel {
+      font-size: 10px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+      position: relative;
+      z-index: 1;
+    }
+
+    .result-tag {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      padding: 3px 9px;
+      opacity: 0;
+      transform: translateY(-6px);
+      transition: all 0.3s 0.35s;
+      z-index: 2;
+    }
+
+    .result-tag.show { opacity: 1; transform: translateY(0); }
+    .result-tag.win  { background: var(--green); color: #000; }
+    .result-tag.lose { background: var(--red);   color: #fff; }
+
+    .car-card.correct { border-color: var(--green) !important; background: rgba(34,197,94,0.04); }
+    .car-card.correct::before { background: var(--green) !important; height: 3px; }
+    .car-card.wrong   { border-color: var(--red)   !important; background: rgba(239,68,68,0.04);  }
+    .car-card.wrong::before   { background: var(--red)   !important; height: 3px; }
+    .car-card.no-hover { cursor: default; }
+
+    /* ─────── NEXT BTN ─────── */
+    .next-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      padding: 11px 32px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.25s 0.6s, opacity 0.3s 0.6s, transform 0.3s 0.6s;
+      opacity: 0;
+      transform: translateY(8px);
+      pointer-events: none;
+    }
+
+    .next-btn.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: all;
+    }
+
+    .next-btn:hover { border-color: #555; color: #ccc; }
+
+    /* ─────── GAME OVER SCREEN ─────── */
+    #gameoverScreen {
+      gap: 24px;
+      text-align: center;
+      padding: 32px;
+    }
+
+    .go-label {
+      font-size: 11px;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .go-score {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: clamp(90px, 18vw, 160px);
+      line-height: 0.85;
+      color: #fff;
+    }
+
+    .go-score span {
+      font-size: 0.45em;
+      color: var(--muted);
+      display: block;
+      margin-top: 4px;
+    }
+
+    .go-msg {
+      font-size: 15px;
+      color: #666;
+      max-width: 360px;
+      line-height: 1.65;
+    }
+
+    .go-best {
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .go-best strong {
+      color: var(--gold);
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 20px;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
+
+    /* ─────── PROGRESS BAR ─────── */
+    .prog-bar {
+      width: 100%;
+      height: 2px;
+      background: var(--dim);
+      position: relative;
+    }
+
+    .prog-fill {
+      height: 100%;
+      background: var(--accent);
+      width: 0%;
+      transition: width 0.5s ease;
+    }
+
+    /* ─────── RESPONSIVE ─────── */
+    @media (max-width: 580px) {
+      .cards-wrapper { flex-direction: column; gap: 10px; }
+      .vs-pill { justify-content: center; padding: 0; }
+      .car-card { min-height: 155px; }
+      .title-stats { flex-direction: column; }
+      .t-stat { border-right: none; border-bottom: 1px solid var(--border); }
+      .t-stat:last-child { border-bottom: none; }
+    }
+
+    /* shake on wrong */
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    .shake { animation: shake 0.4s ease; }
+
+    /* fade in */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .screen.active > * {
+      animation: fadeUp 0.4s ease both;
+    }
+
+    .screen.active > *:nth-child(1) { animation-delay: 0.00s; }
+    .screen.active > *:nth-child(2) { animation-delay: 0.06s; }
+    .screen.active > *:nth-child(3) { animation-delay: 0.12s; }
+    .screen.active > *:nth-child(4) { animation-delay: 0.18s; }
+    .screen.active > *:nth-child(5) { animation-delay: 0.22s; }
+    .screen.active > *:nth-child(6) { animation-delay: 0.26s; }
+  </style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- ════ TITLE ════ -->
+<div class="screen active" id="titleScreen">
+  <div class="title-flag">🇸🇬 Singapore Roads</div>
+  <div class="title-hero">CAR<br><span>WARS</span><br>SG</div>
+  <p class="title-desc">Guess which car brand had <strong>more ownership transfers</strong> on Singapore roads in 2025.</p>
+  <div class="title-stats">
+    <div class="t-stat">
+      <div class="t-stat-n">105,487</div>
+      <div class="t-stat-l">Total Transfers</div>
+    </div>
+    <div class="t-stat">
+      <div class="t-stat-n">44</div>
+      <div class="t-stat-l">Brands</div>
+    </div>
+    <div class="t-stat">
+      <div class="t-stat-n">2025</div>
+      <div class="t-stat-l">Data Year</div>
+    </div>
+  </div>
+  <button class="btn-primary" onclick="startGame()">START GAME</button>
+  <div class="source-note">Data: LTA Annual Vehicle Statistics 2025 · MVP04-1-1</div>
+</div>
+
+<!-- ════ GAME ════ -->
+<div class="screen" id="gameScreen">
+  <div class="game-topbar">
+    <div class="score-group">
+      <div class="score-chip">
+        <div class="val" id="scoreVal">0</div>
+        <div class="lbl">Score</div>
+      </div>
+      <div class="score-chip">
+        <div class="val" id="bestVal">0</div>
+        <div class="lbl">Best</div>
+      </div>
+    </div>
+    <div class="streak-pill" id="streakPill"></div>
+  </div>
+
+  <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+
+  <p class="game-prompt">Which brand had more ownership transfers in 2025?</p>
+
+  <div class="cards-wrapper">
+    <!-- Card A -->
+    <div class="car-card" id="cardA" onclick="handleGuess('A')">
+      <div class="card-wm" id="wmA"></div>
+      <div class="card-brand" id="brandA"></div>
+      <div class="card-number" id="numA"></div>
+      <div class="card-sublabel">2025 transfers</div>
+      <div class="result-tag" id="tagA"></div>
+    </div>
+
+    <div class="vs-pill">VS</div>
+
+    <!-- Card B -->
+    <div class="car-card" id="cardB" onclick="handleGuess('B')">
+      <div class="card-wm" id="wmB"></div>
+      <div class="card-brand" id="brandB"></div>
+      <div class="card-number hidden" id="numB">???</div>
+      <div class="card-sublabel" id="sublabelB">tap to guess</div>
+      <div class="result-tag" id="tagB"></div>
+    </div>
+  </div>
+
+  <button class="next-btn" id="nextBtn" onclick="nextQ()">Next Question →</button>
+</div>
+
+<!-- ════ GAME OVER ════ -->
+<div class="screen" id="gameoverScreen">
+  <div class="go-label">Game Over</div>
+  <div class="go-score" id="finalScore">0<span>correct in a row</span></div>
+  <p class="go-msg" id="goMsg"></p>
+  <div class="go-best">Personal Best <strong id="goBest">0</strong></div>
+  <button class="btn-primary" onclick="startGame()">PLAY AGAIN</button>
+  <div class="source-note">Data: LTA Annual Vehicle Statistics 2025</div>
+</div>
+
+<script>
+// ── DATA (2025 aggregated totals, LTA Annual Vehicle Statistics) ──
+const BRANDS = [
+  { name: "TOYOTA",        count: 20437, color: "#eb0a1e" },
+  { name: "HONDA",         count: 16139, color: "#cc0000" },
+  { name: "MERCEDES BENZ", count: 13050, color: "#8a8a99" },
+  { name: "B.M.W.",        count: 10029, color: "#1c69d3" },
+  { name: "MAZDA",         count:  6086, color: "#910000" },
+  { name: "NISSAN",        count:  5149, color: "#c3002f" },
+  { name: "HYUNDAI",       count:  4233, color: "#003a8c" },
+  { name: "VOLKSWAGEN",    count:  4200, color: "#001e50" },
+  { name: "AUDI",          count:  4002, color: "#bb0a21" },
+  { name: "KIA",           count:  3636, color: "#bb162b" },
+  { name: "MITSUBISHI",    count:  2521, color: "#ed0000" },
+  { name: "SUBARU",        count:  2085, color: "#013c8c" },
+  { name: "PORSCHE",       count:  1759, color: "#d5001c" },
+  { name: "VOLVO",         count:  1658, color: "#003057" },
+  { name: "MINI",          count:  1066, color: "#555555" },
+  { name: "SUZUKI",        count:   907, color: "#003087" },
+  { name: "CITROEN",       count:   829, color: "#c00000" },
+  { name: "PEUGEOT",       count:   764, color: "#003189" },
+  { name: "OPEL",          count:   671, color: "#cc9900" },
+  { name: "RENAULT",       count:   621, color: "#efdf00" },
+  { name: "BYD",           count:   574, color: "#00a86b" },
+  { name: "TESLA",         count:   512, color: "#cc0000" },
+  { name: "JAGUAR",        count:   520, color: "#005b4e" },
+  { name: "LAND ROVER",    count:   503, color: "#005a2b" },
+  { name: "SKODA",         count:   438, color: "#4ba82e" },
+  { name: "CHEVROLET",     count:   357, color: "#c8a000" },
+  { name: "M.G.",          count:   328, color: "#c8102e" },
+  { name: "INFINITI",      count:   240, color: "#c0a060" },
+  { name: "MASERATI",      count:   237, color: "#00265e" },
+  { name: "FORD",          count:   236, color: "#003476" },
+  { name: "SEAT",          count:   218, color: "#fa0230" },
+  { name: "BENTLEY",       count:   190, color: "#3d7b4f" },
+  { name: "FERRARI",       count:   183, color: "#dc0000" },
+  { name: "SSANGYONG",     count:   154, color: "#b22222" },
+  { name: "ROLLS ROYCE",   count:   128, color: "#7b7b7b" },
+  { name: "LAMBORGHINI",   count:    89, color: "#f5a800" },
+  { name: "JEEP",          count:    84, color: "#1a6b1a" },
+  { name: "PERODUA",       count:    67, color: "#cc0000" },
+  { name: "ALFA ROMEO",    count:    65, color: "#b22222" },
+  { name: "DAIHATSU",      count:    62, color: "#0066cc" },
+  { name: "PROTON",        count:    58, color: "#003087" },
+  { name: "POLESTAR",      count:    58, color: "#d0cfc8" },
+  { name: "ASTON MARTIN",  count:    47, color: "#4e6e58" },
+  { name: "MCLAREN",       count:    46, color: "#ff8000" },
+];
+
+// ── STATE ──
+let score = 0;
+let best = +(localStorage.getItem('cw_best') || 0);
+let streak = 0;
+let currentA, currentB;
+let revealed = false;
+let qNum = 0;
+
+// ── HELPERS ──
+const $ = id => document.getElementById(id);
+const fmt = n => n.toLocaleString('en-SG');
+
+function pickPair() {
+  // Weighted random: prefer pairs where ratio is between 1.2x–6x (interesting but not trivial)
+  let attempts = 0, a, b;
+  do {
+    const idx = [...Array(BRANDS.length)].map((_,i) => i).sort(() => Math.random()-0.5);
+    a = BRANDS[idx[0]];
+    b = BRANDS[idx[1]];
+    const ratio = Math.max(a.count, b.count) / Math.min(a.count, b.count);
+    if (ratio >= 1.15 && ratio <= 20) break;
+    attempts++;
+  } while (attempts < 40);
+  return [a, b];
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    // Re-trigger animations
+    void s.offsetWidth;
+  });
+  $(id).classList.add('active');
+}
+
+function updateStreak() {
+  const el = $('streakPill');
+  if (streak >= 2) {
+    const fires = streak >= 8 ? '🔥🔥🔥' : streak >= 5 ? '🔥🔥' : '🔥';
+    el.textContent = fires + ' ' + streak + ' streak';
+    el.style.color = streak >= 5 ? '#ff9500' : '#f5c518';
+  } else {
+    el.textContent = '';
+  }
+}
+
+// ── GAME FLOW ──
+function startGame() {
+  score = 0; streak = 0; revealed = false; qNum = 0;
+  $('scoreVal').textContent = '0';
+  $('bestVal').textContent = best;
+  showScreen('gameScreen');
+  loadQuestion();
+}
+
+function loadQuestion() {
+  revealed = false;
+  qNum++;
+
+  [currentA, currentB] = pickPair();
+
+  // Reset card states
+  ['cardA','cardB'].forEach(id => {
+    const el = $(id);
+    el.className = 'car-card';
+    el.style.transition = '';
+  });
+
+  // Brand colors
+  $('cardA').style.setProperty('--c', currentA.color);
+  $('cardB').style.setProperty('--c', currentB.color);
+
+  // Watermarks
+  $('wmA').textContent = currentA.name[0];
+  $('wmB').textContent = currentB.name[0];
+
+  // Names
+  $('brandA').textContent = currentA.name;
+  $('brandB').textContent = currentB.name;
+
+  // A: show count
+  const nA = $('numA');
+  nA.className = 'card-number pop';
+  nA.textContent = fmt(currentA.count);
+
+  // B: hidden
+  const nB = $('numB');
+  nB.className = 'card-number hidden';
+  nB.textContent = '???';
+
+  $('sublabelB').textContent = 'tap to guess';
+
+  // Hide tags
+  ['tagA','tagB'].forEach(id => {
+    $(id).className = 'result-tag';
+    $(id).textContent = '';
+  });
+
+  // Hide next btn
+  $('nextBtn').className = 'next-btn';
+
+  // Progress (soft visual, not strictly meaningful)
+  $('progFill').style.width = Math.min(qNum * 4, 100) + '%';
+
+  updateStreak();
+}
+
+function handleGuess(pick) {
+  if (revealed) return;
+  revealed = true;
+
+  // Reveal B
+  const nB = $('numB');
+  nB.textContent = fmt(currentB.count);
+  nB.className = 'card-number pop';
+  $('sublabelB').textContent = '2025 transfers';
+
+  // Determine correct
+  const aMore = currentA.count >= currentB.count;
+  const correct = (pick === 'A' && aMore) || (pick === 'B' && !aMore);
+
+  // Higher card = 'correct' visual, lower = 'wrong' visual
+  const higherCard = aMore ? 'A' : 'B';
+  const lowerCard  = aMore ? 'B' : 'A';
+
+  setTimeout(() => {
+    $('card' + higherCard).classList.add('correct', 'no-hover');
+    $('card' + lowerCard ).classList.add('wrong',   'no-hover');
+    $('cardA').classList.add('no-hover');
+    $('cardB').classList.add('no-hover');
+
+    showTag('tag' + higherCard, '✓ MORE',  'win');
+    showTag('tag' + lowerCard,  '✗ FEWER', 'lose');
+
+    if (correct) {
+      score++; streak++;
+      if (score > best) { best = score; localStorage.setItem('cw_best', best); }
+      $('scoreVal').textContent = score;
+      $('bestVal').textContent  = best;
+      updateStreak();
+      $('nextBtn').className = 'next-btn show';
+    } else {
+      streak = 0;
+      updateStreak();
+      // Shake the wrong card
+      $('card' + pick).classList.add('shake');
+      setTimeout(showGameOver, 1900);
+    }
+  }, 480);
+}
+
+function showTag(id, text, cls) {
+  const el = $(id);
+  el.textContent = text;
+  el.className = 'result-tag ' + cls;
+  requestAnimationFrame(() => el.classList.add('show'));
+}
+
+function nextQ() {
+  loadQuestion();
+}
+
+function showGameOver() {
+  $('finalScore').innerHTML = score + '<span>correct in a row</span>';
+  $('goBest').textContent = best;
+  const msgs = [
+    [0,  0,  "Tough start! Singapore's car scene has some surprises. Try again!"],
+    [1,  3,  "Getting warmed up! Those luxury brands can be tricky. Keep going!"],
+    [4,  7,  "Solid run! You know your way around a Singapore car park."],
+    [8,  12, "Impressive! You clearly pay attention to what's on the roads."],
+    [13, 19, "Outstanding! You might just be Singapore's biggest car nerd. 🏎️"],
+    [20, 999,"LEGENDARY! You have the soul of an LTA statistician. 🏆"],
+  ];
+  const row = msgs.find(([lo, hi]) => score >= lo && score <= hi) || msgs[0];
+  $('goMsg').textContent = row[2];
+  showScreen('gameoverScreen');
+}
+
+// Init best display
+$('bestVal') && ($('bestVal').textContent = best);
+</script>
+</body>
+</html>
